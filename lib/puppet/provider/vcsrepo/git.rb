@@ -191,6 +191,10 @@ Puppet::Type.type(:vcsrepo).provide(:git, :parent => Puppet::Provider::Vcsrepo) 
 
   def checkout(revision = @resource.value(:revision))
     at_path do
+      # Fetch all branches
+      git_with_identity('fetch', @resource.value(:remote))
+
+      # Fetch any tags not on branches
       git_with_identity('fetch', '--tags', @resource.value(:remote))
 
       if !local_branch_revision? && remote_branch_revision?
