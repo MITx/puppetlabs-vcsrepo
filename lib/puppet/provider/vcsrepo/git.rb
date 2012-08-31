@@ -190,16 +190,18 @@ Puppet::Type.type(:vcsrepo).provide(:git, :parent => Puppet::Provider::Vcsrepo) 
   end
 
   def checkout(revision = @resource.value(:revision))
-    git_with_identity('fetch', '--tags', @resource.value(:remote))
+    at_path do
+      git_with_identity('fetch', '--tags', @resource.value(:remote))
 
-    if !local_branch_revision? && remote_branch_revision?
-      at_path { git_with_identity('checkout', '-b', revision, '--track', "#{@resource.value(:remote)}/#{revision}") }
-    else
-      at_path { git_with_identity('checkout', '--force', revision) }
-    end
+      if !local_branch_revision? && remote_branch_revision?
+        git_with_identity('checkout', '-b', revision, '--track', "#{@resource.value(:remote)}/#{revision}")
+      else
+        git_with_identity('checkout', '--force', revision)
+      end
 
-    if @resource.value(:ensure) == 'latest'
-      reset "#{@resource.value(:remote)}/#{revision}"
+      if @resource.value(:ensure) == 'latest'
+        reset "#{@resource.value(:remote)}/#{revision}"
+      end
     end
   end
 
