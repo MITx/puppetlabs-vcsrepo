@@ -96,8 +96,8 @@ Puppet::Type.type(:vcsrepo).provide(:git, :parent => Puppet::Provider::Vcsrepo) 
 
   def update_references
     at_path do
+      git_with_identity('fetch', '--tags', @resource.value(:remote))
       checkout
-      git_with_identity('pull', @resource.value(:remote))
       update_owner_and_excludes
     end
   end
@@ -195,6 +195,10 @@ Puppet::Type.type(:vcsrepo).provide(:git, :parent => Puppet::Provider::Vcsrepo) 
       at_path { git_with_identity('checkout', '-b', revision, '--track', "#{@resource.value(:remote)}/#{revision}") }
     else
       at_path { git_with_identity('checkout', '--force', revision) }
+    end
+
+    if @resource.value(:ensure) == 'latest'
+      reset "#{@resource.value(:remote)}/#{revision}"
     end
   end
 
