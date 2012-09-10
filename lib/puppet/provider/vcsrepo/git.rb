@@ -94,9 +94,14 @@ Puppet::Type.type(:vcsrepo).provide(:git, :parent => Puppet::Provider::Vcsrepo) 
     working_copy_exists? || bare_exists?
   end
 
+  # Update references in the repository, but don't update the working copy
   def update_references
     at_path do
-      checkout
+      # Fetch all branches
+      git_with_identity('fetch', @resource.value(:remote))
+
+      # Fetch any tags not on branches
+      git_with_identity('fetch', '--tags', @resource.value(:remote))
       update_owner_and_excludes
     end
   end
@@ -191,11 +196,7 @@ Puppet::Type.type(:vcsrepo).provide(:git, :parent => Puppet::Provider::Vcsrepo) 
 
   def checkout(revision = @resource.value(:revision))
     at_path do
-      # Fetch all branches
-      git_with_identity('fetch', @resource.value(:remote))
-
-      # Fetch any tags not on branches
-      git_with_identity('fetch', '--tags', @resource.value(:remote))
+      update_references
 
       if !local_branch_revision? && remote_branch_revision?
         git_with_identity('checkout', '-b', revision, '--track', "#{@resource.value(:remote)}/#{revision}")
@@ -261,10 +262,7 @@ Puppet::Type.type(:vcsrepo).provide(:git, :parent => Puppet::Provider::Vcsrepo) 
     if !working_copy_exists?
       create
     end
-    at_path do
-      git_with_identity('fetch', @resource.value(:remote))
-      git_with_identity('fetch', '--tags', @resource.value(:remote))
-    end
+    update_references
     current = at_path { git_with_identity('rev-parse', rev).strip }
     if @resource.value(:revision)
       if local_branch_revision?
@@ -274,7 +272,6 @@ Puppet::Type.type(:vcsrepo).provide(:git, :parent => Puppet::Provider::Vcsrepo) 
       end
       current = @resource.value(:revision) if current == canonical
     end
-    update_owner_and_excludes
     return current
   end
 
